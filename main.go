@@ -1,0 +1,64 @@
+package main
+
+import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/pem"
+	"fmt"
+)
+
+func main() {
+	// base64 pubKey & privKey
+	pubKey := "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF5Z0dvVWlURCtMandaSWd3Rlp5agppaWJXTlEyTE05eFoycGpLUUdQOGlVQnRBdUFXNjI5L09mdzhxeFRvTXlpeFByRzRBN2o4K0tPUHdZcldQR1Y2Ck9nLy80em0zY0crMWhRdm5OVVd0TWpISEJZOE9CeVVQUTYvVDhYSEVSMUR4RkJmbldmRkxaMXlGWDZvTk51dnQKTGdPcmVJNmVoZWhKZDVJQi80bU9qTXZGRUJnT0VlamFkbzJuNTVWTmRjRnBkUTNSY3ZHVitmL3JsL2xzSU0wOApRdkwzbGM1Z3Fhd2o1M3NXOVlaaTFETC91TjQ4UitnaHZBWWh0eDJqcEhEQnZsSDFOQ0YxclU2Q3luWXNnVjlRCklrc3YwaWh3bDRUK2s1RjlpcjB1djBXSVM2a0tLUzFTUnBBcHJSS3Vub3M0UGxFOGwyK2pDNkxhSlVQaERabGoKL3dJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0t"
+	privKey := "LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb2dJQkFBS0NBUUVBeWdHb1VpVEQrTGp3Wklnd0ZaeWppaWJXTlEyTE05eFoycGpLUUdQOGlVQnRBdUFXCjYyOS9PZnc4cXhUb015aXhQckc0QTdqOCtLT1B3WXJXUEdWNk9nLy80em0zY0crMWhRdm5OVVd0TWpISEJZOE8KQnlVUFE2L1Q4WEhFUjFEeEZCZm5XZkZMWjF5Rlg2b05OdXZ0TGdPcmVJNmVoZWhKZDVJQi80bU9qTXZGRUJnTwpFZWphZG8ybjU1Vk5kY0ZwZFEzUmN2R1YrZi9ybC9sc0lNMDhRdkwzbGM1Z3Fhd2o1M3NXOVlaaTFETC91TjQ4ClIrZ2h2QVlodHgyanBIREJ2bEgxTkNGMXJVNkN5bllzZ1Y5UUlrc3YwaWh3bDRUK2s1RjlpcjB1djBXSVM2a0sKS1MxU1JwQXByUkt1bm9zNFBsRThsMitqQzZMYUpVUGhEWmxqL3dJREFRQUJBb0lCQUhJY1g1WVBlTGllMkFVaQpQVzluN2FZVDdEdEo3RkdlYncraDhkWlA1UTh2V3FVZUt6UlI1cCs5MGhPZW10Q1RjeFNFVmZ1Y1d5S2xXb2F0ClEvb1lKT1I1dDBZSGk0MHpQV25yNEc3aWJrVUZnM1NyYS9RelJoMHBUT04rTGE5UGxPK1IxVG1rcWNDNHJncnQKUjh1M21HSys1ZlVUTTQ5WE9YRVhCSlB5ZzVrYVhRcGlBNEJvSVJkUm5DU2l0TnhXQThreE1rUVlKWWx3QVlhYgpjS280SWsvSjYrWUdHN20yRnRyVUFXcFdWVU1CekVZT21HSjdKaFNKMXUwVUMvT2gxSE9TMXhsR29wa21leGJkCkV5Z1kzaFROV3pIbVlhWWNZUXMwZis4YVZjVkw2NEdtMGR0cXZBSE5uQnZ1ZE1UaGhRZ2RZUGMzOW1OTGJyd0kKa3M0dVM4RUNnWUVBOVhmdmNHS3NOckhBMG5xb1BVUE1UME5mdnYvNFhDYUtPWWsyNWJySDRMYnFKUG02Q2lVNgp1TmxLRlFzeHpIUG14N09FSzdFWVZWWkNiU085czR0L3hDekRWTmJPWjlrREw2YmtUWDlEQXJMRTRkNklSRi8xCldXL0FsTlB1d1ZneGwwa2NKSUxGdExxQTFXb0M1VVdNaGJZZTJZQi9RM3JDb3ptbjBBaXd5cUVDZ1lFQTBxeGQKS0NsS0FNSXNyQjBXSjlnWkVzSk9wRmk0cTRnNlQxQndUNDBYajZVbDZvNkRIaTZoRmhQZ1pBc3RxbW5ZMEFOegplelEyeXh0SW03elN5N1MrbndEVXljalk5cmlKY29tYy9ZUVpOQTJRVk0xNmhFdjg0Vkx3SDFNVlYyd2tUYjQxCkRXamJjZy9aTm9mWkhsOUFRSXc3ZXMrUjNtbXRETis4QlpPWlNwOENnWUJIdHdtYVVRbTFWUXRic3dBeUhmdXoKOEtBcGdrbENTdlE1U1JCajM4VURydzBMVG5aKy9rK0FyK01IOE9SVXNrdnJibFFnRzdaYlFEOVorWVl6elg2Lwpoc0J1cWU5VndiNC9qc2ZHcUhhZ2REQTNPVGVnbWxScEU5QTA2eEluSktnZ1pmaTE1Z3J5K1VZb2s3ZFMycFhxCmZzSFdrOGNhcE9QMm9pS1lFZUhzNFFLQmdGMktjTGFEVnJ0dGUvNVR6K0dUSHRib2RaaWRXQ201akFKcGVlU28KaGZ5ZTNHNEFKeEhBckgrc0JhY0dHNW1kODhtd3JwYld3VGwvZk1iQm1Xc2Zic0FVMDJaaENvekp0U1dwR282cQpGN0s0RHd6SVM0endYSEVEcldDTE9GK2Z3YUxQUUtrYWxNMVpZaDNIUmMwcGg5TGhNUXUvbkVuLzYvbGFZaGFyCnlaV0xBb0dBU3ZDcnBGS24wcWxsTUtOVWV0Qm1ZRnBndGptbk51VzdsMHhUMlVmdGtXNkF1RmpVMTlnS2dYaGUKSSt1WmNpSFE4a0lVSGZOTFlCYmhFVHNGM2lxc2tsS2Zlb0lyMjN6WUhMRTVHcG9DMTUxSXBLZjRndW9QYkNIWAphMW9DRHVabS8vZjVITWVQYjlqdUpOMFdSLy9kNWpXdWl6QXljWmY0MVhvRWQ4QnF5ZGc9Ci0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0t"
+	msg := "Hello Privy"
+
+	enc := encrypt(pubKey, msg)
+	fmt.Println(hex.EncodeToString(enc))
+
+	dec := decrypt(privKey, enc)
+	fmt.Println(dec)
+}
+
+func encrypt(publicKeyData string, message string) []byte {
+	var pub *rsa.PublicKey
+
+	decPubKey, _ := base64.StdEncoding.DecodeString(publicKeyData)
+
+	pubKeyBlock, _ := pem.Decode(decPubKey)
+	pubInterface, err := x509.ParsePKIXPublicKey(pubKeyBlock.Bytes)
+	if err != nil {
+		fmt.Println("load public key error")
+	}
+
+	pub = pubInterface.(*rsa.PublicKey)
+	ciphertext, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, pub, []byte(message), nil)
+	if err != nil {
+		fmt.Println("encrypt error")
+	}
+
+	return ciphertext
+}
+
+func decrypt(privKeyData string, ciphertext []byte) string {
+	var pri *rsa.PrivateKey
+
+	decPrivKey, _ := base64.StdEncoding.DecodeString(privKeyData)
+
+	privateKeyBlock, _ := pem.Decode(decPrivKey)
+	pri, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
+	if err != nil {
+		fmt.Println("load private key error")
+	}
+
+	plaintext, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, pri, ciphertext, nil)
+	if err != nil {
+		fmt.Println("decrypt error")
+	}
+
+	return string(plaintext)
+}
